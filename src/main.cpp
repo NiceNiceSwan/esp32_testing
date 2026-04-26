@@ -7,13 +7,10 @@
 
 volatile long encoderCount = 0;
 volatile uint8_t lastEncoded = 0;
+double angle = 0.0;
+SemaphoreHandle_t angle_mutex = NULL;
 
-bool encoder_updated = false;
-
-void IRAM_ATTR updateEncoder();
-
-int count_1 = 0;
-int count_2 = 0;
+void updateEncoder();
 
 void task_1(void* parameters);
 void task_2(void* parameters);
@@ -28,6 +25,8 @@ void setup()
 
 	attachInterrupt(digitalPinToInterrupt(ENCODER_A), updateEncoder, CHANGE);
 	attachInterrupt(digitalPinToInterrupt(ENCODER_B), updateEncoder, CHANGE);
+
+	angle_mutex = xSemaphoreCreateMutex();
 
 	xTaskCreate(
 		task_1,
@@ -49,34 +48,58 @@ void setup()
 
 void loop()
 {
-	Serial.println("loop test");
-	delay(1000 / portTICK_PERIOD_MS);
+	// Serial.println("loop test");
+	// delay(1000 / portTICK_PERIOD_MS);
 }
 
 void task_1(void* parameters)
 {
+	while (true)
+	{
 	
-	// while (true)
-	// {
-	// 	Serial.print("Task 1 counter: ");
-	// 	Serial.println(count_1++);
-	// 	vTaskDelay(1000 / portTICK_PERIOD_MS);
-	// }
-	
+	static long lastCount = 0;
+	if (lastCount != encoderCount)
+	{
+
+		long count;
+		noInterrupts();
+		count = encoderCount;
+		interrupts();
+
+		double revolutions = count / 4096.0;
+		double _angle = revolutions * 360.0;
+		// double degrees = revolutions * 360.0;
+		if (xSemaphoreTake(angle_mutex, 1 / portTICK_PERIOD_MS))
+		{
+			angle = _angle;
+			xSemaphoreGive(angle_mutex);
+		}
+		// angle = revolutions * 360.0;
+
+		lastCount = count;
+	}
+	vTaskDelay(10 / portTICK_PERIOD_MS);
+	}
 }
 
 void task_2(void* parameters)
 {
 	while (true)
 	{
-		Serial.print("Task 2 counter: ");
-		Serial.println(count_2++);
+		Serial.print("Task 2 angle: ");
+		double _angle;
+		if (xSemaphoreTake(angle_mutex, 1 / portTICK_PERIOD_MS))
+		{
+			_angle = angle;
+			xSemaphoreGive(angle_mutex);
+		}
+		Serial.println(_angle);
 		vTaskDelay(2000 / portTICK_PERIOD_MS);
 	}
 
 }
 
-void IRAM_ATTR updateEncoder()
+void updateEncoder()
 {
 
 	uint8_t MSB = digitalRead(ENCODER_A);
@@ -89,5 +112,4 @@ void IRAM_ATTR updateEncoder()
 	if (sum == 0b1110 || sum == 0b0111 || sum == 0b0001 || sum == 0b1000) encoderCount--;
 
 	lastEncoded = encoded;
-	encoder_updated = true;
 }
