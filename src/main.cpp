@@ -1,9 +1,13 @@
 #include <Arduino.h>
+// #include <AccelStepper.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
 #define ENCODER_A 35
 #define ENCODER_B 34
+#define PUL_MINUS 25
+#define ENA_MINUS 27
+#define DIR_MINUS 35
 
 volatile long encoderCount = 0;
 volatile uint8_t lastEncoded = 0;
@@ -17,6 +21,11 @@ void task_2(void* parameters);
 
 void setup()
 {
+	pinMode(ENA_MINUS, OUTPUT);
+	pinMode(DIR_MINUS, OUTPUT);
+	digitalWrite(ENA_MINUS, HIGH);
+	digitalWrite(DIR_MINUS, HIGH);
+	pinMode(PUL_MINUS, OUTPUT);
 	Serial.begin(9600);
 	Serial.println("Starting program.");
 
@@ -27,7 +36,7 @@ void setup()
 	attachInterrupt(digitalPinToInterrupt(ENCODER_B), updateEncoder, CHANGE);
 
 	angle_mutex = xSemaphoreCreateMutex();
-
+/*
 	xTaskCreate(
 		task_1,
 		"task 1",
@@ -44,12 +53,16 @@ void setup()
 		1,
 		NULL
 	);
+	*/
 }
 
 void loop()
 {
-	// Serial.println("loop test");
-	// delay(1000 / portTICK_PERIOD_MS);
+	digitalWrite(PUL_MINUS, HIGH);
+	delayMicroseconds(500);
+	digitalWrite(PUL_MINUS, LOW);
+	delayMicroseconds(500);
+	Serial.println("looping");
 }
 
 void task_1(void* parameters)
@@ -94,7 +107,11 @@ void task_2(void* parameters)
 			xSemaphoreGive(angle_mutex);
 		}
 		Serial.println(_angle);
-		vTaskDelay(2000 / portTICK_PERIOD_MS);
+		// analogWrite(PUL_MINUS, 255);
+		digitalWrite(PUL_MINUS, HIGH);
+		vTaskDelay(200 / portTICK_PERIOD_MS);
+		digitalWrite(PUL_MINUS, LOW);
+		// analogWrite(PUL_MINUS, 0);
 	}
 
 }
