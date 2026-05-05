@@ -3,22 +3,46 @@
 
 #include <Arduino.h>
 #include <math.h>
+#include <unordered_map>
 
 #define DIRECTION_CLOCKWISE HIGH
 #define DIRECTION_COUNTER_CLOCKWISE LOW
 
-/// moves the servo to a set position from origin
+#define MAX_ANGLE_RESOLUTION 0.35
+
+// control commands
+
+/// moves the servo to a set position from origin. 
+/// Should be followed by a number immediately after, eg. SA300 or SA-100
 #define SERVO_MOVE_ABSOLUTE "SA"
-/// moves the servo to a position relative to it's current one
+/// moves the servo to a position relative to it's current one. 
+/// Should be followed by a number immediately after, eg. SR300 or SR-100
 #define SERVO_MOVE_RELATIVE "SR"
-/// returns the servo to the origin point
+/// returns the servo to the origin point.
 #define SERVO_MOVE_TO_ORIGIN "SH"
 /// performs a test routine
 #define SERVO_TEST_ROUTINE "ST"
+/// sets the current point to be the 0 point
+#define SERVO_SET_HOME "SSH"
 /// forces the next move of the stepper to be clockwise
 #define SERVO_FORCE_DIRECTION_CLOCKWISE "SFR"
 /// forces the next move of the stepper to be counter-clockwise
 #define SERVO_FORCE_DIRECTION_COUNTER_CLOCKWISE "SFL"
+/// resets the forced direction
+#define SERVO_FORCE_DIRECTION_NONE "SFN"
+
+enum command
+{
+    MOVE_ABSOLUTE,
+    MOVE_RELATIVE,
+    MOVE_TO_ORIGIN,
+    TEST_ROUTINE,
+    SET_HOME,
+    FORCE_DIRECTION_CLOCKWISE,
+    FORCE_DIRECTION_COUNTER_CLOCKWISE,
+    FORCE_DIRECTION_NONE,
+    ERROR,
+};
 
 enum directions
 {
@@ -30,19 +54,19 @@ enum directions
 class Rotation_stepper_controller
 {
 private:
-    directions forced_direction = directions::NONE;
+    directions _forced_direction = directions::NONE;
     bool _running = false;
-    int _enable_pin;
-    int _direction_pin;
-    int _pulse_pin;
+    uint8_t _enable_pin;
+    uint8_t _direction_pin;
+    uint8_t _pulse_pin;
     double _current_angle;
     double _target_angle;
 
     /// @brief given the current and target angles, returns the direction in which the stepper should be turning
     /// @param current_angle our angle in range [0, 360)
     /// @param target_angle angle to which we want to turn. Must be in range [0, 360)
-    /// @return TRUE if direction is clockwise, FALSE if direction is counter clockwise. if current_angle == target_angle, returns TRUE
-    bool _calculate_direction(double current_angle, double target_angle);
+    void _calculate_direction(double current_angle, double target_angle);
+    command _input_to_command(const std::string& input);
 public:
     Rotation_stepper_controller(/* args */);
     ~Rotation_stepper_controller();
@@ -53,9 +77,16 @@ public:
     // look it probably doesn't matter but I think it's neat
     void current_angle(const double& current_angle) { _current_angle = current_angle; };
 
+    /// @brief absolute angle to which we want to move the motor from the 0 position
+    /// @param angle angle in degrees. Can be any real number
     void move_to_angle(double angle);
+    /// @brief relative move by the amount specified from the current position
+    /// @param angle angle in degrees. Can be any real number
     void move_by_angle(double angle);
+    /// @brief returns the servo to the 0 point
     void move_to_origin();
+    /// @brief sets the current position as the 0 point. Also stops the servo and resets the forced direction
+    void set_home();
     void test_routine();
     bool take_serial_input(String input);
     void handle_movement();
