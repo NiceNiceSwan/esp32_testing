@@ -31,7 +31,7 @@
 /// resets the forced direction
 #define SERVO_FORCE_DIRECTION_NONE "SFN"
 
-enum command
+enum Command
 {
     MOVE_ABSOLUTE,
     MOVE_RELATIVE,
@@ -54,28 +54,50 @@ enum directions
 class Rotation_stepper_controller
 {
 private:
+    uint8_t _enable_pin = -1;
+    uint8_t _direction_pin = -1;
+    uint8_t _pulse_pin = -1;
+
     directions _forced_direction = directions::NONE;
     bool _running = false;
-    uint8_t _enable_pin;
-    uint8_t _direction_pin;
-    uint8_t _pulse_pin;
-    double _current_angle;
-    double _target_angle;
+    double _current_angle = 0;
+    double _target_angle = 0;
 
     /// @brief given the current and target angles, returns the direction in which the stepper should be turning
     /// @param current_angle our angle in range [0, 360)
     /// @param target_angle angle to which we want to turn. Must be in range [0, 360)
     void _calculate_direction(double current_angle, double target_angle);
-    command _input_to_command(const std::string& input);
+    Command _input_to_command(const std::string& input);
+    /// @brief clamps the value
+    /// @param value value which you want clamped
+    /// @param min minimum value this can be
+    /// @param max maximum value this can be
+    /// @return value clamped to range min and max, including min and max
+    int _clamp(int value, const int &min, const int &max);
 public:
-    Rotation_stepper_controller(/* args */);
+    Rotation_stepper_controller();
+    Rotation_stepper_controller(uint8_t enable_pin, uint8_t direction_pin, uint8_t pulse_pin);
     ~Rotation_stepper_controller();
 
+    void attach_pins(uint8_t enable_pin, uint8_t direction_pin, uint8_t pulse_pin);
+
     // setters
+
     // const double& because it's TINY TINSY BIT FASTER (because we don't have to copy 
     // the double value and instead just use the one it's being pointed to)
     // look it probably doesn't matter but I think it's neat
     void current_angle(const double& current_angle) { _current_angle = current_angle; };
+    void attach_pulse_pin(uint8_t pulse_pin) { _pulse_pin = pulse_pin; };
+    void attach_direction_pin(uint8_t direction_pin) {_direction_pin = direction_pin; };
+    void attach_enable_pin(uint8_t enable_pin) { _enable_pin = enable_pin; };
+
+    // getters
+
+    // technically unnecessary since in our use case it can be read directly from main. But who cares.
+    double current_angle() { return _current_angle; };
+    double target_angle() { return _target_angle; };
+    directions forced_direction() { return _forced_direction; };
+    bool running() { return _running; };
 
     /// @brief absolute angle to which we want to move the motor from the 0 position
     /// @param angle angle in degrees. Can be any real number

@@ -4,8 +4,28 @@ Rotation_stepper_controller::Rotation_stepper_controller()
 {
 }
 
+Rotation_stepper_controller::Rotation_stepper_controller(uint8_t enable_pin, uint8_t direction_pin, uint8_t pulse_pin)
+{
+    _enable_pin = enable_pin;
+    _direction_pin = direction_pin;
+    _pulse_pin = pulse_pin;
+
+    
+	pinMode(_enable_pin, OUTPUT);
+	pinMode(_direction_pin, OUTPUT);
+	pinMode(_pulse_pin, OUTPUT);
+    digitalWrite(_enable_pin, HIGH);
+}
+
 Rotation_stepper_controller::~Rotation_stepper_controller()
 {
+}
+
+void Rotation_stepper_controller::attach_pins(uint8_t enable_pin, uint8_t direction_pin, uint8_t pulse_pin)
+{
+    _enable_pin = enable_pin;
+    _direction_pin = direction_pin;
+    _pulse_pin = pulse_pin;
 }
 
 void Rotation_stepper_controller::_calculate_direction(double current_angle, double target_angle)
@@ -22,21 +42,28 @@ void Rotation_stepper_controller::_calculate_direction(double current_angle, dou
     digitalWrite(_direction_pin, direction);
 }
 
-command Rotation_stepper_controller::_input_to_command(const std::string& input)
+Command Rotation_stepper_controller::_input_to_command(const std::string& input)
 {
-    static const std::unordered_map<std::string, command> map = {
-        {SERVO_MOVE_ABSOLUTE, command::MOVE_ABSOLUTE},
-        {SERVO_MOVE_RELATIVE, command::MOVE_RELATIVE},
-        {SERVO_MOVE_TO_ORIGIN, command::MOVE_TO_ORIGIN},
-        {SERVO_SET_HOME, command::SET_HOME},
-        {SERVO_TEST_ROUTINE, command::TEST_ROUTINE},
-        {SERVO_FORCE_DIRECTION_CLOCKWISE, command::FORCE_DIRECTION_CLOCKWISE},
-        {SERVO_FORCE_DIRECTION_COUNTER_CLOCKWISE, command::FORCE_DIRECTION_COUNTER_CLOCKWISE},
-        {SERVO_FORCE_DIRECTION_NONE, command::FORCE_DIRECTION_NONE},
+    static const std::unordered_map<std::string, Command> map = {
+        {SERVO_MOVE_ABSOLUTE, Command::MOVE_ABSOLUTE},
+        {SERVO_MOVE_RELATIVE, Command::MOVE_RELATIVE},
+        {SERVO_MOVE_TO_ORIGIN, Command::MOVE_TO_ORIGIN},
+        {SERVO_SET_HOME, Command::SET_HOME},
+        {SERVO_TEST_ROUTINE, Command::TEST_ROUTINE},
+        {SERVO_FORCE_DIRECTION_CLOCKWISE, Command::FORCE_DIRECTION_CLOCKWISE},
+        {SERVO_FORCE_DIRECTION_COUNTER_CLOCKWISE, Command::FORCE_DIRECTION_COUNTER_CLOCKWISE},
+        {SERVO_FORCE_DIRECTION_NONE, Command::FORCE_DIRECTION_NONE},
     };
 
-    auto it = map.find(input);
-    return it != map.end() ? it->second : command::ERROR;
+    auto iterator = map.find(input);
+    return iterator != map.end() ? iterator->second : Command::ERROR;
+}
+
+int Rotation_stepper_controller::_clamp(int value, const int &min_, const int &max_)
+{
+    value = min(value, max_);
+    value = max(value, min_);
+    return value;
 }
 
 void Rotation_stepper_controller::move_to_angle(double angle)
@@ -67,47 +94,59 @@ void Rotation_stepper_controller::set_home()
     _running = false;
 }
 
+void Rotation_stepper_controller::test_routine()
+{
+
+}
+
 bool Rotation_stepper_controller::take_serial_input(String input)
 {
-    if (input == SERVO_FORCE_DIRECTION_CLOCKWISE)
+    double target_angle;
+    Command command;
+
+    if (isDigit(input.charAt(2)))
     {
+        command = _input_to_command(input.substring(2).c_str());
+    }
+    else
+    {
+        command = _input_to_command(input.c_str());
+    }
+    
+    switch (command)
+    {
+    case Command::FORCE_DIRECTION_CLOCKWISE:
         _forced_direction = directions::CLOCKWISE;
         return true;
-    }
-    if (input == SERVO_FORCE_DIRECTION_COUNTER_CLOCKWISE)
-    {
+    case Command::FORCE_DIRECTION_COUNTER_CLOCKWISE:
         _forced_direction = directions::COUNTER_CLOCKWISE;
         return true;
-    }
-    if (input == SERVO_FORCE_DIRECTION_NONE)
-    {
+    case Command::FORCE_DIRECTION_NONE:
         _forced_direction = directions::NONE;
         return true;
-    }
-    if (input.startsWith(SERVO_MOVE_ABSOLUTE))
-    {
-        double target_angle = input.substring(2).toDouble();
+    case Command::MOVE_ABSOLUTE:
+        target_angle = input.substring(2).toDouble();
         move_to_angle(target_angle);
         return true;
-    }
-    if (input.startsWith(SERVO_MOVE_RELATIVE))
-    {
-        double move_angle = input.substring(2).toDouble();
-        move_by_angle(move_angle);
+    case Command::MOVE_RELATIVE:
+        target_angle = input.substring(2).toDouble();
+        move_by_angle(target_angle);
         return true;
-    }
-    if (input.startsWith(SERVO_MOVE_TO_ORIGIN))
-    {
+    case Command::MOVE_TO_ORIGIN:
         move_to_origin();
         return true;
-    }
-    if (input.startsWith(SERVO_TEST_ROUTINE))
-    {
+    case Command::TEST_ROUTINE:
         test_routine();
         return true;
+    case Command::SET_HOME:
+        set_home();
+        return true;
+    default:
+        return false;
     }
-    return false;
 
+    // just in case
+    return false;
 }
 
 void Rotation_stepper_controller::handle_movement()
