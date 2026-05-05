@@ -78,6 +78,8 @@ void task_1(void* parameters)
 		noInterrupts();
 		count = encoderCount;
 		interrupts();
+		count %= 4096;
+
 
 		double revolutions = count / 4096.0;
 		double _angle = revolutions * 360.0;
@@ -99,7 +101,7 @@ void task_2(void* parameters)
 {
 	while (true)
 	{
-		Serial.print("Task 2 angle: ");
+		// Serial.print("Task 2 angle: ");
 		double _angle;
 		if (xSemaphoreTake(angle_mutex, 1 / portTICK_PERIOD_MS))
 		{
