@@ -1,5 +1,5 @@
 #include <Arduino.h>
-// #include <AccelStepper.h>
+#include "rotation_stepper_controller.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
@@ -13,6 +13,7 @@ volatile long encoderCount = 0;
 volatile uint8_t lastEncoded = 0;
 double angle = 0.0;
 SemaphoreHandle_t angle_mutex = NULL;
+Rotation_stepper_controller rotation_stepper(ENA_MINUS, DIR_MINUS, PUL_MINUS);
 
 void updateEncoder();
 
@@ -21,11 +22,11 @@ void task_2(void* parameters);
 
 void setup()
 {
-	pinMode(ENA_MINUS, OUTPUT);
-	pinMode(DIR_MINUS, OUTPUT);
-	digitalWrite(ENA_MINUS, HIGH);
-	digitalWrite(DIR_MINUS, HIGH);
-	pinMode(PUL_MINUS, OUTPUT);
+	// pinMode(ENA_MINUS, OUTPUT);
+	// pinMode(DIR_MINUS, OUTPUT);
+	// pinMode(PUL_MINUS, OUTPUT);
+	// digitalWrite(ENA_MINUS, HIGH);
+	// digitalWrite(DIR_MINUS, HIGH);
 	Serial.begin(9600);
 	Serial.println("Starting program.");
 
@@ -36,7 +37,7 @@ void setup()
 	attachInterrupt(digitalPinToInterrupt(ENCODER_B), updateEncoder, CHANGE);
 
 	angle_mutex = xSemaphoreCreateMutex();
-/*
+
 	xTaskCreate(
 		task_1,
 		"task 1",
@@ -53,16 +54,15 @@ void setup()
 		1,
 		NULL
 	);
-	*/
 }
 
 void loop()
 {
-	digitalWrite(PUL_MINUS, HIGH);
-	delayMicroseconds(500);
-	digitalWrite(PUL_MINUS, LOW);
-	delayMicroseconds(500);
-	Serial.println("looping");
+	// digitalWrite(PUL_MINUS, HIGH);
+	// delayMicroseconds(500);
+	// digitalWrite(PUL_MINUS, LOW);
+	// delayMicroseconds(500);
+	// Serial.println("looping");
 }
 
 void task_1(void* parameters)
@@ -108,12 +108,21 @@ void task_2(void* parameters)
 			_angle = angle;
 			xSemaphoreGive(angle_mutex);
 		}
-		Serial.println(_angle);
-		// analogWrite(PUL_MINUS, 255);
-		digitalWrite(PUL_MINUS, HIGH);
-		vTaskDelay(200 / portTICK_PERIOD_MS);
-		digitalWrite(PUL_MINUS, LOW);
-		// analogWrite(PUL_MINUS, 0);
+		
+		// Serial.println(_angle);
+		// // analogWrite(PUL_MINUS, 255);
+		// digitalWrite(PUL_MINUS, HIGH);
+		// vTaskDelay(200 / portTICK_PERIOD_MS);
+		// digitalWrite(PUL_MINUS, LOW);
+		// // analogWrite(PUL_MINUS, 0);
+		
+		rotation_stepper.handle_movement();
+		if (!Serial.available()) {
+			return;
+		}
+		String input = Serial.readStringUntil('\n');
+		input.trim();
+		rotation_stepper.take_serial_input(input);
 	}
 
 }
