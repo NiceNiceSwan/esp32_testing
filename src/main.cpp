@@ -49,7 +49,7 @@ void setup()
 	xTaskCreate(
 		task_2,
 		"task 2",
-		1000,
+		4096,
 		NULL,
 		1,
 		NULL
@@ -83,13 +83,11 @@ void task_1(void* parameters)
 
 		double revolutions = count / 4096.0;
 		double _angle = revolutions * 360.0;
-		// double degrees = revolutions * 360.0;
 		if (xSemaphoreTake(angle_mutex, 1 / portTICK_PERIOD_MS))
 		{
 			angle = _angle;
 			xSemaphoreGive(angle_mutex);
 		}
-		// angle = revolutions * 360.0;
 
 		lastCount = count;
 	}
@@ -101,8 +99,9 @@ void task_2(void* parameters)
 {
 	while (true)
 	{
+		// Serial.println("looping");
 		// Serial.print("Task 2 angle: ");
-		double _angle;
+		double _angle = 0;
 		if (xSemaphoreTake(angle_mutex, 1 / portTICK_PERIOD_MS))
 		{
 			_angle = angle;
@@ -117,12 +116,11 @@ void task_2(void* parameters)
 		// // analogWrite(PUL_MINUS, 0);
 		
 		rotation_stepper.handle_movement();
-		if (!Serial.available()) {
-			return;
+		if (Serial.available()) {
+			String input = Serial.readStringUntil('\n');
+			input.trim();
+			rotation_stepper.take_serial_input(input);
 		}
-		String input = Serial.readStringUntil('\n');
-		input.trim();
-		rotation_stepper.take_serial_input(input);
 	}
 
 }
