@@ -39,6 +39,10 @@ void Rotation_stepper_controller::_calculate_direction(double current_angle, dou
     
     double delta = fmod(target_angle - current_angle + 360, 360) - 180;
     bool direction = delta <= 0;
+    Serial.println(current_angle);
+    Serial.println(target_angle);
+    Serial.println(_direction_pin);
+    Serial.println(direction);
     digitalWrite(_direction_pin, direction);
 }
 
@@ -70,7 +74,9 @@ void Rotation_stepper_controller::move_to_angle(double angle)
 {
     angle = fmod(angle, 360);
     _target_angle = angle;
+    Serial.println("xDDDD");
     _calculate_direction(_current_angle, _target_angle);
+    Serial.println("UWU");
 }
 
 void Rotation_stepper_controller::move_by_angle(double angle)
@@ -101,47 +107,59 @@ void Rotation_stepper_controller::test_routine()
 
 bool Rotation_stepper_controller::take_serial_input(String input)
 {
-    double target_angle;
+    double target_angle = 0;
     Command command;
 
     if (isDigit(input.charAt(2)))
     {
-        command = _input_to_command(input.substring(2).c_str());
+        command = _input_to_command(input.substring(0, 2).c_str());
+        Serial.println(command);
+        Serial.println(input.substring(0, 2).c_str());
     }
     else
     {
+        Serial.println("EEEEEELSE!!!!!");
         command = _input_to_command(input.c_str());
     }
     
     switch (command)
     {
     case Command::FORCE_DIRECTION_CLOCKWISE:
+        Serial.println("Force direction clockwise");
         _forced_direction = directions::CLOCKWISE;
         return true;
     case Command::FORCE_DIRECTION_COUNTER_CLOCKWISE:
+        Serial.println("Force direction counter clockwise");
         _forced_direction = directions::COUNTER_CLOCKWISE;
         return true;
     case Command::FORCE_DIRECTION_NONE:
+        Serial.println("Force direction none");
         _forced_direction = directions::NONE;
         return true;
     case Command::MOVE_ABSOLUTE:
+        Serial.println("Move absolute");
         target_angle = input.substring(2).toDouble();
         move_to_angle(target_angle);
         return true;
     case Command::MOVE_RELATIVE:
+        Serial.println("Move relative");
         target_angle = input.substring(2).toDouble();
         move_by_angle(target_angle);
         return true;
     case Command::MOVE_TO_ORIGIN:
+        Serial.println("Move to origin");
         move_to_origin();
         return true;
     case Command::TEST_ROUTINE:
+        Serial.println("Test routine");
         test_routine();
         return true;
     case Command::SET_HOME:
+        Serial.println("Set home");
         set_home();
         return true;
     default:
+        Serial.println("Wrong command");
         return false;
     }
 
@@ -161,6 +179,6 @@ void Rotation_stepper_controller::handle_movement()
     
     _running = true;
 	digitalWrite(_pulse_pin, HIGH);
-	delayMicroseconds(500);
+	// delayMicroseconds(500);
 	digitalWrite(_pulse_pin, LOW);
 }
