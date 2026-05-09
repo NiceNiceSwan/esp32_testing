@@ -56,14 +56,16 @@ enum directions
 class Rotation_stepper_controller
 {
 private:
-    uint8_t _enable_pin = -1;
     uint8_t _direction_pin = -1;
     uint8_t _pulse_pin = -1;
 
     directions _forced_direction = directions::NONE;
     bool _running = false;
+    bool _direction = true;
     double _current_angle = 0;
     double _target_angle = 0;
+    bool _testing = false;
+    uint8_t _testing_stage = 0;
 
     /// @brief given the current and target angles, returns the direction in which the stepper should be turning
     /// @param current_angle our angle in range [0, 360)
@@ -78,10 +80,10 @@ private:
     int _clamp(int value, const int &min, const int &max);
 public:
     Rotation_stepper_controller();
-    Rotation_stepper_controller(uint8_t enable_pin, uint8_t direction_pin, uint8_t pulse_pin);
+    Rotation_stepper_controller(uint8_t direction_pin, uint8_t pulse_pin);
     ~Rotation_stepper_controller();
 
-    void attach_pins(uint8_t enable_pin, uint8_t direction_pin, uint8_t pulse_pin);
+    void attach_pins(uint8_t direction_pin, uint8_t pulse_pin);
 
     // setters
 
@@ -91,7 +93,6 @@ public:
     void current_angle(const double& current_angle) { _current_angle = current_angle; };
     void attach_pulse_pin(uint8_t pulse_pin) { _pulse_pin = pulse_pin; };
     void attach_direction_pin(uint8_t direction_pin) {_direction_pin = direction_pin; };
-    void attach_enable_pin(uint8_t enable_pin) { _enable_pin = enable_pin; };
 
     // getters
 
@@ -112,7 +113,7 @@ public:
     /// @brief sets the current position as the 0 point. Also stops the servo and resets the forced direction
     void set_home();
     void test_routine();
-    bool take_serial_input(String input);
+    Command take_serial_input(String input);
     void handle_movement();
 };
 

@@ -4,26 +4,21 @@ Rotation_stepper_controller::Rotation_stepper_controller()
 {
 }
 
-Rotation_stepper_controller::Rotation_stepper_controller(uint8_t enable_pin, uint8_t direction_pin, uint8_t pulse_pin)
+Rotation_stepper_controller::Rotation_stepper_controller(uint8_t direction_pin, uint8_t pulse_pin)
 {
-    _enable_pin = enable_pin;
     _direction_pin = direction_pin;
     _pulse_pin = pulse_pin;
 
-    
-	pinMode(_enable_pin, OUTPUT);
 	pinMode(_direction_pin, OUTPUT);
 	pinMode(_pulse_pin, OUTPUT);
-    digitalWrite(_enable_pin, HIGH);
 }
 
 Rotation_stepper_controller::~Rotation_stepper_controller()
 {
 }
 
-void Rotation_stepper_controller::attach_pins(uint8_t enable_pin, uint8_t direction_pin, uint8_t pulse_pin)
+void Rotation_stepper_controller::attach_pins(uint8_t direction_pin, uint8_t pulse_pin)
 {
-    _enable_pin = enable_pin;
     _direction_pin = direction_pin;
     _pulse_pin = pulse_pin;
 }
@@ -38,8 +33,8 @@ void Rotation_stepper_controller::_calculate_direction(double current_angle, dou
     }
     
     double delta = fmod(target_angle - current_angle + 360, 360) - 180;
-    bool direction = delta <= 0;
-    digitalWrite(_direction_pin, HIGH);
+    _direction = delta <= 0;
+    digitalWrite(_direction_pin, _direction);
 }
 
 Command Rotation_stepper_controller::_input_to_command(const std::string& input)
@@ -68,8 +63,24 @@ int Rotation_stepper_controller::_clamp(int value, const int &min_, const int &m
 
 void Rotation_stepper_controller::move_to_angle(double angle)
 {
+    int sign;
+    if (angle >= 0)
+    {
+        sign = 1;
+    }
+    else
+    {
+        sign = -1;
+    }
     angle = fmod(angle, 360);
-    _target_angle = angle;
+    if (sign == 1)
+    {
+        _target_angle = angle;
+    }
+    else
+    {
+        _target_angle = 360 + angle;
+    }
     _calculate_direction(_current_angle, _target_angle);
 }
 
@@ -77,6 +88,11 @@ void Rotation_stepper_controller::move_by_angle(double angle)
 {
     angle = fmod(angle, 360);
     _target_angle = angle + _current_angle;
+    if (_target_angle < 0)
+    {
+        _target_angle += 360;
+    }
+    
     _calculate_direction(_current_angle, _target_angle);
 }
 
@@ -96,15 +112,74 @@ void Rotation_stepper_controller::set_home()
 
 void Rotation_stepper_controller::test_routine()
 {
-
+    if (_testing_stage)
+    {
+        vTaskDelay(2500 / portTICK_PERIOD_MS);
+    }
+    
+    switch (_testing_stage)
+    {
+    case 0:
+        Serial.println("Starting test routine");
+        Serial.println("Rotate to 90 degrees clockwise");
+        move_to_angle(90);
+        break;
+    case 1:
+        Serial.println("Rotate to position 0");
+        move_to_origin();
+        break;
+    case 2:
+        Serial.println("Rotate by 90 degrees counter clockwise");
+        move_by_angle(-90);
+        break;
+    case 3:
+        Serial.println("Rotate to 90 degrees clockwise");
+        move_to_angle(90);
+        break;
+    case 4:
+        Serial.println("Forcing clockwise rotation");
+        _forced_direction = directions::CLOCKWISE;
+        break;
+    case 5:
+        Serial.println("Rotate to 90 degrees counter clockwise");
+        move_to_angle(-90);
+        break;
+    case 6:
+        Serial.println("Rotate to position 0");
+        move_to_origin();
+        break;
+    case 7:
+        Serial.println("Forcing counter clockwise rotation");
+        _forced_direction = directions::COUNTER_CLOCKWISE;
+        break;
+    case 8:
+        Serial.println("Rotate to 90 degrees clockwise");
+        move_to_angle(90);
+        break;
+    case 9:
+        Serial.println("Rotate to position 0");
+        move_to_origin();
+        break;
+    default:
+        Serial.print("Test routine finished\n");
+        _testing = false;
+        _testing_stage = 0;
+        return;
+    }
+    _testing_stage++;
 }
 
-bool Rotation_stepper_controller::take_serial_input(String input)
+Command Rotation_stepper_controller::take_serial_input(String input)
 {
     double target_angle = 0;
     Command command;
+    if (_testing)
+    {
+        return Command::TEST_ROUTINE;
+    }
+    
 
-    if (isDigit(input.charAt(2)))
+    if (isDigit(input.charAt(2)) || input.charAt(2) == '-')
     {
         command = _input_to_command(input.substring(0, 2).c_str());
     }
@@ -118,63 +193,75 @@ bool Rotation_stepper_controller::take_serial_input(String input)
     case Command::FORCE_DIRECTION_CLOCKWISE:
         Serial.println("Force direction clockwise");
         _forced_direction = directions::CLOCKWISE;
-        return true;
+        return command;
     case Command::FORCE_DIRECTION_COUNTER_CLOCKWISE:
         Serial.println("Force direction counter clockwise");
         _forced_direction = directions::COUNTER_CLOCKWISE;
-        return true;
+        return command;
     case Command::FORCE_DIRECTION_NONE:
         Serial.println("Force direction none");
         _forced_direction = directions::NONE;
-        return true;
+        return command;
     case Command::MOVE_ABSOLUTE:
         Serial.println("Move absolute");
         target_angle = input.substring(2).toDouble();
         move_to_angle(target_angle);
-        return true;
+        return command;
     case Command::MOVE_RELATIVE:
         Serial.println("Move relative");
         target_angle = input.substring(2).toDouble();
         move_by_angle(target_angle);
-        return true;
+        return command;
     case Command::MOVE_TO_ORIGIN:
         Serial.println("Move to origin");
         move_to_origin();
-        return true;
+        return command;
     case Command::TEST_ROUTINE:
         Serial.println("Test routine");
+        _testing = true;
+        _testing_stage = 0;
         test_routine();
-        return true;
+        return command;
     case Command::SET_HOME:
         Serial.println("Set home");
         set_home();
-        return true;
+        return command;
     default:
         Serial.println("Wrong command");
-        return false;
+        return command;
     }
 
     // just in case
-    return false;
+    return command;
 }
 
 void Rotation_stepper_controller::handle_movement()
 {
-    // Serial.println(_current_angle);
-    // Serial.println(_target_angle);
+    
     double distance_to_target = abs(_current_angle - _target_angle);
-    Serial.println(distance_to_target);
+    if (_direction == directions::COUNTER_CLOCKWISE && _target_angle > _current_angle)
+    {
+        distance_to_target = abs(_current_angle - (_target_angle - 360));
+    }
+
     if (distance_to_target < MAX_ANGLE_RESOLUTION)
     {
-        _forced_direction = directions::NONE;
+        if (_running == true)
+        {
+            _forced_direction = directions::NONE;
+        }
+        
+        if (_testing)
+        {
+            test_routine();
+        }
         _running = false;
         return;
     }
     
     _running = true;
 	digitalWrite(_pulse_pin, HIGH);
-    vTaskDelay(50/portTICK_PERIOD_MS);
-	// delayMicroseconds(500);
+    vTaskDelay(1/portTICK_PERIOD_MS);
 	digitalWrite(_pulse_pin, LOW);
-    vTaskDelay(50/portTICK_PERIOD_MS);
+    vTaskDelay(1/portTICK_PERIOD_MS);
 }
