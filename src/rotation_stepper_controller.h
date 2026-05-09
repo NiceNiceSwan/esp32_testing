@@ -4,6 +4,8 @@
 #include <Arduino.h>
 #include <math.h>
 #include <unordered_map>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 
 #define DIRECTION_CLOCKWISE HIGH
 #define DIRECTION_COUNTER_CLOCKWISE LOW

@@ -39,11 +39,7 @@ void Rotation_stepper_controller::_calculate_direction(double current_angle, dou
     
     double delta = fmod(target_angle - current_angle + 360, 360) - 180;
     bool direction = delta <= 0;
-    Serial.println(current_angle);
-    Serial.println(target_angle);
-    Serial.println(_direction_pin);
-    Serial.println(direction);
-    digitalWrite(_direction_pin, direction);
+    digitalWrite(_direction_pin, HIGH);
 }
 
 Command Rotation_stepper_controller::_input_to_command(const std::string& input)
@@ -74,9 +70,7 @@ void Rotation_stepper_controller::move_to_angle(double angle)
 {
     angle = fmod(angle, 360);
     _target_angle = angle;
-    Serial.println("xDDDD");
     _calculate_direction(_current_angle, _target_angle);
-    Serial.println("UWU");
 }
 
 void Rotation_stepper_controller::move_by_angle(double angle)
@@ -113,12 +107,9 @@ bool Rotation_stepper_controller::take_serial_input(String input)
     if (isDigit(input.charAt(2)))
     {
         command = _input_to_command(input.substring(0, 2).c_str());
-        Serial.println(command);
-        Serial.println(input.substring(0, 2).c_str());
     }
     else
     {
-        Serial.println("EEEEEELSE!!!!!");
         command = _input_to_command(input.c_str());
     }
     
@@ -169,7 +160,10 @@ bool Rotation_stepper_controller::take_serial_input(String input)
 
 void Rotation_stepper_controller::handle_movement()
 {
+    // Serial.println(_current_angle);
+    // Serial.println(_target_angle);
     double distance_to_target = abs(_current_angle - _target_angle);
+    Serial.println(distance_to_target);
     if (distance_to_target < MAX_ANGLE_RESOLUTION)
     {
         _forced_direction = directions::NONE;
@@ -179,6 +173,8 @@ void Rotation_stepper_controller::handle_movement()
     
     _running = true;
 	digitalWrite(_pulse_pin, HIGH);
+    vTaskDelay(50/portTICK_PERIOD_MS);
 	// delayMicroseconds(500);
 	digitalWrite(_pulse_pin, LOW);
+    vTaskDelay(50/portTICK_PERIOD_MS);
 }

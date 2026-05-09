@@ -3,9 +3,9 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
-#define ENCODER_A 35
-#define ENCODER_B 34
-#define PUL_MINUS 25
+#define ENCODER_A 33
+#define ENCODER_B 32
+#define PUL_MINUS 27
 #define ENA_MINUS 27
 #define DIR_MINUS 35
 
@@ -90,6 +90,7 @@ void task_1(void* parameters)
 		}
 
 		lastCount = count;
+		// Serial.println(_angle);
 	}
 	vTaskDelay(10 / portTICK_PERIOD_MS);
 	}
@@ -121,6 +122,7 @@ void task_2(void* parameters)
 			input.trim();
 			rotation_stepper.take_serial_input(input);
 		}
+		vTaskDelay(10/portTICK_PERIOD_MS);
 	}
 
 }
