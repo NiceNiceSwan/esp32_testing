@@ -11,6 +11,7 @@ Rotation_stepper_controller::Rotation_stepper_controller(uint8_t direction_pin, 
 
 	pinMode(_direction_pin, OUTPUT);
 	pinMode(_pulse_pin, OUTPUT);
+	digitalWrite(_pulse_pin, LOW);
 }
 
 Rotation_stepper_controller::~Rotation_stepper_controller()
@@ -21,6 +22,9 @@ void Rotation_stepper_controller::attach_pins(uint8_t direction_pin, uint8_t pul
 {
     _direction_pin = direction_pin;
     _pulse_pin = pulse_pin;
+	pinMode(_direction_pin, OUTPUT);
+	pinMode(_pulse_pin, OUTPUT);
+	digitalWrite(_pulse_pin, LOW);
 }
 
 void Rotation_stepper_controller::_calculate_direction(double current_angle, double target_angle)
@@ -247,11 +251,24 @@ Command Rotation_stepper_controller::take_serial_input(String input)
 
 void Rotation_stepper_controller::handle_movement()
 {
-    double distance_to_target = abs(_current_angle - _target_angle);
-    if (_direction == directions::COUNTER_CLOCKWISE && _target_angle > _current_angle)
-    {
-        distance_to_target = abs(_current_angle - (_target_angle - 360));
-    }
+    double current_angle = _current_angle * PI / 180.0;
+    double target_angle = _target_angle * PI / 180.0;
+    double delta = target_angle - current_angle;
+    double delta_short = abs(atan2(sin(delta), cos(delta)));
+    double distance_to_target = delta_short * 180.0 / PI;
+
+    // static int message_count = 0;
+    // message_count++;
+    // if (message_count % 1000 == 0)
+    // {
+    //     Serial.print("current angle: ");
+    //     Serial.println(_current_angle);
+    //     Serial.print("target angle: ");
+    //     Serial.println(_target_angle);
+    //     Serial.print("Distance: ");
+    //     Serial.println(distance_to_target);
+    // }
+    
 
     if (distance_to_target < MAX_ANGLE_RESOLUTION)
     {
@@ -272,5 +289,4 @@ void Rotation_stepper_controller::handle_movement()
 	digitalWrite(_pulse_pin, HIGH);
     vTaskDelay(1/portTICK_PERIOD_MS);
 	digitalWrite(_pulse_pin, LOW);
-    // vTaskDelay(1/portTICK_PERIOD_MS);
 }
