@@ -31,9 +31,19 @@ void Rotation_stepper_controller::_calculate_direction(double current_angle, dou
         _forced_direction = directions::NONE;
         return;
     }
+    current_angle = current_angle * PI / 180.0;
+    target_angle = target_angle * PI / 180.0;
+    double delta = target_angle - current_angle;
+    double delta_short = atan2(sin(delta), cos(delta));
+    if (delta_short <= 0)
+    {
+        _direction = 0;
+    }
+    else
+    {
+        _direction = 1;
+    }
     
-    double delta = fmod(target_angle - current_angle + 360, 360) - 180;
-    _direction = delta <= 0;
     digitalWrite(_direction_pin, _direction);
 }
 
@@ -92,7 +102,7 @@ void Rotation_stepper_controller::move_by_angle(double angle)
     {
         _target_angle += 360;
     }
-    
+    _target_angle = fmod(_target_angle, 360);
     _calculate_direction(_current_angle, _target_angle);
 }
 
@@ -237,7 +247,6 @@ Command Rotation_stepper_controller::take_serial_input(String input)
 
 void Rotation_stepper_controller::handle_movement()
 {
-    
     double distance_to_target = abs(_current_angle - _target_angle);
     if (_direction == directions::COUNTER_CLOCKWISE && _target_angle > _current_angle)
     {
@@ -263,5 +272,5 @@ void Rotation_stepper_controller::handle_movement()
 	digitalWrite(_pulse_pin, HIGH);
     vTaskDelay(1/portTICK_PERIOD_MS);
 	digitalWrite(_pulse_pin, LOW);
-    vTaskDelay(1/portTICK_PERIOD_MS);
+    // vTaskDelay(1/portTICK_PERIOD_MS);
 }
