@@ -10,10 +10,10 @@ Poniżej przedstawiono złącza sygnałowe sterownika TB6600 oraz piny na ESP 32
 
 - ENA+: odłączony
 - ENA-: odłączony
-- DIR-: GND
-- DIR+: 33
+- DIR-: pin GND
+- DIR+: G33
 - PUL-: GND
-- PUL+: 25
+- PUL+: pin G25
 
 ### High Voltage
 
@@ -36,16 +36,17 @@ Poniżej przedstawiono połączenia złączy enkodera obrotowego do kontrolera E
 
 #### Złącza logiczne
 
-- Kanał A enkodera (kabel zielony): 34
-- Kanał B enkodera (kabel biały): 35
+- Kanał A enkodera (kabel zielony): G34
+- Kanał B enkodera (kabel biały): G35
+- Kanał Z enkodera (kabel żółty): Odłączony
 
 #### Złącza zasilania
 
-- Kanał VCC enkodera (kabel czerwony): 5V
-- Kanał 0V enkodera (kabel czarny): GND
+- Kanał VCC enkodera (kabel czerwony): pin 5V
+- Kanał 0V enkodera (kabel czarny): pin GND
 
 # Schemat podłączania
 
-Poniżej zamieszczono schemat podłączania kabli w formie graficznej. **Nie zostały uwzględnione kable zasilające.**
+Poniżej zamieszczono schemat podłączania kabli w formie graficznej. **Nie zostały uwzględnione kable zasilające. Sterownika, a jedynie kable zasilające enkodera**.
 
 <img alt="Schemat podłączania" src="schemat_podlaczania.png"/>
