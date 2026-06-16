@@ -28,7 +28,7 @@ Poniżej przedstawiono połączenia złączy zasilających sterownika TB6600 do 
 
 #### Złącza VCC i GND
 
-Złącza VCC i GND enkodera powinny zostać połączone do kabla zasilającego sterownika.
+Złącza VCC i GND sterownika powinny zostać połączone do jego kabla zasilającego.
 
 ## Enkoder obrotu
 
