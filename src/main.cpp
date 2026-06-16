@@ -3,6 +3,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
+// jeśli coś tutaj zmienisz, ZAAKTUALIZUJ README
 // red is VCC, black is ground
 // green cable
 #define ENCODER_A 34
